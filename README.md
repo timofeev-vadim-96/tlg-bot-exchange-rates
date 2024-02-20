@@ -25,3 +25,17 @@
 ✅ /exchange_rates_all - котировки всех валют Центробанка РФ  
 ✅ /choose_currency - выбрать конкретную валюту  
 
+Скриншоты:  
+
+`info`
+
+![info](img/tlg_info.png)
+
+`exchange_rates`
+
+![exchange_rates](img/tlg_exchange_rates.png)
+
+`choose_currency`
+
+![keyboard](img/tlg_keyboard.png)
+
