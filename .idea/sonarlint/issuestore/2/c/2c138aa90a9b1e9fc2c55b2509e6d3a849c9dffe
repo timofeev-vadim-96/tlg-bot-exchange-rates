@@ -1,0 +1,22 @@
+
+`	java:S1124"FDefine and throw a dedicated exception instead of using a generic one.(Ò‚Òéüÿÿÿÿ
+`	java:S112>"FDefine and throw a dedicated exception instead of using a generic one.(Ò‚Òéüÿÿÿÿ
+`	java:S112c"FDefine and throw a dedicated exception instead of using a generic one.(Ò‚Òéüÿÿÿÿ
+@	java:S1067"+Replace this use of System.out by a logger.(áĞüÇ
+M
+java:S1135K"2Complete the task associated to this TODO comment.(ñ•Ôøÿÿÿÿ
+M
+java:S1135N"2Complete the task associated to this TODO comment.(ñ•Ôøÿÿÿÿ
+M
+java:S1135Q"2Complete the task associated to this TODO comment.(ñ•Ôøÿÿÿÿ
+@	java:S106g"+Replace this use of System.out by a logger.(Šğš
+@	java:S106u"+Replace this use of System.out by a logger.(• ˜ì
+@	java:S106y"+Replace this use of System.out by a logger.(µå¾Õ
+K
+java:S1128"0Remove this unused import 'lombok.SneakyThrows'.(¨³üÖûÿÿÿÿ
+U
+java:S1128"?Remove this unused import 'org.example.util.JsonConverterUtil'.(ªğ¸ù
+h
+java:S1128"SRemove this unused import 'org.telegram.telegrambots.meta.api.methods.CopyMessage'.(´Ê[
+F
+java:S1128"0Remove this unused import 'java.util.ArrayList'.(÷‰îƒ
