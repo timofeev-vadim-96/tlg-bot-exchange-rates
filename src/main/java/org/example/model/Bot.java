@@ -1,6 +1,5 @@
 package org.example.model;
 
-import lombok.Getter;
 import org.example.model.cbr.Valute;
 import org.example.services.exchangeRates.ExchangeRateGetter;
 import org.example.util.Flag;
@@ -20,18 +19,17 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.Keyboard
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardRow;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
-import java.util.ArrayList;
-import java.util.List;
+import javax.management.Query;
+import java.util.*;
 
 public class Bot extends TelegramLongPollingBot {
     private ExchangeRateGetter exchangeRateGetter;
+    Map<Long, Double> conversionRequests;
     private final String token;
-
-
     //клавиатура для команды /start
     private ReplyKeyboardMarkup replyKeyboardMarkup;
     //клавиатура для команды /convert
-    private InlineKeyboardMarkup convertKeyboard;
+    private List<InlineKeyboardMarkup> convertKeyboards;
     private final String BOT_USERNAME = "w0nder_waffle_bot";
     private final String DOUBLE_REGEX = "[-+]?[0-9]*\\.?[0-9]+([eE][-+]?[0-9]+)?";
     //для идентификации callbackData от кнопок - соответствия их клавиатуре
@@ -43,7 +41,12 @@ public class Bot extends TelegramLongPollingBot {
         this.token = token;
         this.exchangeRateGetter = exchangeRateGetter;
 
-        exchangeKeyboards = createKeyboards(4,4,exchangeRateGetter.getValutes());
+        conversionRequests = new HashMap<>();
+
+        exchangeKeyboards = createKeyboards(4, 4, exchangeRateGetter.getValutes().stream().map(Valute::getCharCode).toList());
+
+        List<String> convertValutes = List.of("USD", "EUR", "GBP", "CNY", "JPY", "HKD", "KZT", "UAH", "BYN", "TRY", "CHF");
+        convertKeyboards = createKeyboards(4, 4, convertValutes);
 
         createReplyKeyboard();
     }
@@ -62,14 +65,7 @@ public class Bot extends TelegramLongPollingBot {
     public void onUpdateReceived(Update update) {
         //обработка CallbackQuery от нажатия кнопок
         if (update.hasCallbackQuery()) {
-            String text = update.getCallbackQuery().getData();
-            try {
-                if (Flag.flags.containsKey(text)) { //пустые приходят от клавиатур котировок валют (базовых)
-                    sendMessage(update.getCallbackQuery().getFrom().getId(), exchangeRateGetter.getSpecificExchangeRate(text));
-                } else buttonTap(update.getCallbackQuery());
-            } catch (TelegramApiException e) {
-                throw new RuntimeException(e);
-            }
+            callbackQueryHandler(update);
         } else if (update.hasMessage()) {
             Long userId = update.getMessage().getFrom().getId();
             Message message = update.getMessage();
@@ -78,6 +74,34 @@ public class Bot extends TelegramLongPollingBot {
             } else {
                 handleMessage(userId, message);
             }
+        }
+    }
+
+    private void callbackQueryHandler(Update update) {
+        String data = update.getCallbackQuery().getData();
+        long userId = update.getCallbackQuery().getFrom().getId();
+        try {
+            if (data.contains("Next") || data.contains("Back")) {
+                buttonTap(update.getCallbackQuery());
+            } else if (data.split("_").length == 2) {
+                int keyboardId = Integer.parseInt(data.split("_")[1]);
+                String body = data.split("_")[0];
+
+                //если пришло с клавиатуры курсов валют
+                int keyboardListRange = exchangeKeyboards.size();
+                if (keyboardId <= keyboardListRange) {
+                    sendMessage(userId, exchangeRateGetter.getSpecificExchangeRate(body));
+                }
+
+                //если пришло от клавиатуры конвертации в валюту
+                keyboardListRange += convertKeyboards.size();
+                System.out.println(keyboardListRange);
+                if (keyboardId <= keyboardListRange) {
+                    sendMessage(userId, exchangeRateGetter.convert(conversionRequests.get(userId), body));
+                }
+            }
+        } catch (TelegramApiException e) {
+            throw new RuntimeException(e);
         }
     }
 
@@ -120,39 +144,26 @@ public class Bot extends TelegramLongPollingBot {
      */
     private void commandsHandler(Long userId, Message message) {
         String command = message.getText();
-        switch (command) {
-            case "/exchange_rates":
-                sendMessage(userId, exchangeRateGetter.getBasicExchangeRates());
-                break;
-            case "/exchange_rates_all":
-                sendMessage(userId, exchangeRateGetter.getAllExchangeRates());
-                break;
-            case "/choose_currency":
-                sendMenu(userId, "<b>Выберите валюту</b>", (exchangeKeyboards.get(0)));
-                break;
-            case "/convert":
-                //TODO конвертация
-                String[] convertArr = command.split(" ");
-                if (convertArr.length != 2 || !convertArr[1].matches(DOUBLE_REGEX)) { //2 - команда + сумма рублей
-                    sendMessage(userId, "Неверные параметры для конвертации.");
-                }
-                break;
-            case "/info":
-                sendMessage(userId, getInformation());
-                break;
-            case "/start":
-                sendMenu(userId, "Welcome", replyKeyboardMarkup);
-                break;
-            case "/feedback":
-                //TODO feedback
-                break;
-            case "/dynamics":
-                //TODO Динамика ключевых валют за 1, 2, 3, 6, 12, 24, 36, 60 месяцев
-                break;
-            default:
-                sendMessage(userId, "Unknown command!");
-                break;
-        }
+        if (command.contains("/convert")) {
+            //TODO конвертация
+            String[] convertArr = command.split(" ");
+            if (convertArr.length != 2 || !convertArr[1].matches(DOUBLE_REGEX)) { //2 - команда + сумма рублей
+                sendMessage(userId, "Пример правильного запроса для конвертации: \n" +
+                        "\"/convert 1000\"");
+            } else {
+                conversionRequests.put(userId, Double.parseDouble(convertArr[1]));
+                sendMenu(userId, "<b>Выберите валюту для конвертации</b>", convertKeyboards.get(0));
+            }
+        } else if (command.equals("/exchange_rates")) sendMessage(userId, exchangeRateGetter.getBasicExchangeRates());
+        else if (command.equals("/exchange_rates_all")) sendMessage(userId, exchangeRateGetter.getAllExchangeRates());
+        else if (command.equals("/choose_currency"))
+            sendMenu(userId, "<b>Выберите валюту</b>", (exchangeKeyboards.get(0)));
+        else if (command.equals("/info")) sendMessage(userId, getInformation());
+        else if (command.equals("/start")) sendMenu(userId, "Welcome", replyKeyboardMarkup);
+            //todo else if (command.equals("/feedback"));  //связь с разработчиком
+            //todo else if (command.equals("subscribe")); //подписка на курс выбранной валюты в 10:00 и в 19:00 по Москве (открытие и закрытие Мос. биржи)
+            //todo else if (command.equals("/dynamics"));  //Динамика ключевых валют за 1, 2, 3, 6, 12, 24, 36, 60 месяцев
+        else sendMessage(userId, "Unknown command!");
     }
 
     /**
@@ -199,15 +210,15 @@ public class Bot extends TelegramLongPollingBot {
                 .chatId(id.toString()).messageId(msgId).build();
 
         switch (data) {
-            case "Next1", "Back3" -> {
+            case "Next_1", "Back_3" -> {
                 newTxt.setText("<b>Выберите валюту</b>");
                 newKb.setReplyMarkup(exchangeKeyboards.get(1));
             }
-            case "Next2" -> {
+            case "Next_2" -> {
                 newTxt.setText("<b>Выберите валюту</b>");
                 newKb.setReplyMarkup((exchangeKeyboards.get(2)));
             }
-            case "Back2" -> {
+            case "Back_2" -> {
                 System.out.println("BACK в очереди");
                 newTxt.setText("<b>Выберите валюту</b>");
                 newKb.setReplyMarkup((exchangeKeyboards.get(0)));
@@ -224,32 +235,24 @@ public class Bot extends TelegramLongPollingBot {
     }
 
     /**
-     * Метод инициализация клавиатур
+     * Метод создания списка клавиатур
+     *
+     * @param rows         количество строк
+     * @param columns      количество колонок
+     * @param charCodesAll список кодов валют
+     * @return
      */
-    private void createKeyboards() {
-        List<String> charCodeList1 = List.of("AUD", "AZN", "GBP", "AMD", "BYN", "BGN", "BRL", "HUF", "VND", "HKD", "GEL", "DKK", "AED", "USD", "EUR");
-        List<String> charCodeList2 = List.of("EGP", "INR", "IDR", "KZT", "CAD", "QAR", "KGS", "CNY", "MDL", "NZD", "NOK", "PLN", "RON", "XDR");
-        List<String> charCodeList3 = List.of("TJS", "THB", "TRY", "TMT", "UZS", "UAH", "CZK", "SEK", "CHF", "RSD", "ZAR", "KRW", "JPY", "SGD");
-    }
-
-    /**
-     * Метод инициализация клавиатур
-     */
-    private List<InlineKeyboardMarkup> createKeyboards(int rows, int columns, List<Valute> valutes) {
-        List<String> charCodesAll = valutes.stream().map(Valute::getCharCode).toList();
+    private List<InlineKeyboardMarkup> createKeyboards(int rows, int columns, List<String> charCodesAll) {
         List<InlineKeyboardMarkup> keyboards = new ArrayList<>();
         int keyboardsQuantity = getKeyboardsQuantity(rows, columns, charCodesAll);
         int subListStartPosition = 0;
         int subListEndPosition = 0;
         for (int i = 0; i < keyboardsQuantity; i++) {
             //если клавиатура первая и не является единственной - кнопка Next нужна
-            boolean needNextButton = i != keyboardsQuantity -1;
+            boolean needNextButton = i != keyboardsQuantity - 1;
             //если клавиатура последняя и не единственная - кнопка Back нужна
             boolean needBackButton = i != 0;
             int valuteButtonsQuantity = getValuteButtonsQuantity(rows, columns, needNextButton, needBackButton);
-            //todo
-            System.out.println("количество кнопок на " + keyboardsTotalCounter + " клавиатуре - " + valuteButtonsQuantity + " Нужна ли " +
-                    "стартовая кнопка : " + needNextButton + " или обратная кнопка " + needBackButton);
             subListEndPosition += valuteButtonsQuantity;
             //если это последняя клавиатуры, то границей будет - размер списка
             if (subListEndPosition >= charCodesAll.size()) subListEndPosition = charCodesAll.size();
@@ -263,8 +266,9 @@ public class Bot extends TelegramLongPollingBot {
 
     /**
      * Метод для расчета необходимого количества клавиатур относительно имеющихся Валют
-     * @param rows строки
-     * @param columns колонки
+     *
+     * @param rows         строки
+     * @param columns      колонки
      * @param charCodesAll список имеющихся Валют
      * @return количество клавиатур
      */
@@ -274,11 +278,9 @@ public class Bot extends TelegramLongPollingBot {
         int keyboardsQuantity;
         if (charCodesAll.size() <= rows * columns) {
             keyboardsQuantity = 1;
-        }
-        else if (charCodesAll.size() <= edgeKeyboardButtonMaxQuantity * 2) {
+        } else if (charCodesAll.size() <= edgeKeyboardButtonMaxQuantity * 2) {
             keyboardsQuantity = 2;
-        }
-        else {
+        } else {
             keyboardsQuantity = 2; //учитываем прошлые проверки - уже точно более двух клавиатур
             if (((charCodesAll.size() - edgeKeyboardButtonMaxQuantity * 2) % middleKeyboardButtonMaxQuantity) == 0) {
                 keyboardsQuantity += (charCodesAll.size() - edgeKeyboardButtonMaxQuantity * 2) / middleKeyboardButtonMaxQuantity;
@@ -293,9 +295,9 @@ public class Bot extends TelegramLongPollingBot {
     /**
      * Метод создания телеграмм-клавиатуры
      *
-     * @param rowSize           количество кнопок в строке
-     * @param rowsQuantity      количество строк
-     * @param charCodeList      список с кодами валют
+     * @param rowSize        количество кнопок в строке
+     * @param rowsQuantity   количество строк
+     * @param charCodeList   список с кодами валют
      * @param needNextButton последняя ли это клавиатура (от этого зависит наличие кнопки Next или Back)
      * @return клавиатуру с кнопками
      */
@@ -315,7 +317,7 @@ public class Bot extends TelegramLongPollingBot {
             for (int j = 0; j < rowSize; j++) {
 
                 if (k < charCodeList.size()) {
-                    rowButtons.add(createCurrencyButton(charCodeList.get(k), ""));
+                    rowButtons.add(createCurrencyButton(charCodeList.get(k), keyBoardNumb));
                 }
                 //когда элементы в списке заканчиваются - добавляем кнопки Next/Back
                 else {
@@ -324,7 +326,7 @@ public class Bot extends TelegramLongPollingBot {
                         rowButtons.add(createInlineButton("Next", keyBoardNumb));
                     } else if (needBackButton) {
                         rowButtons.add(createInlineButton("Back", keyBoardNumb));
-                    } else if (needNextButton){
+                    } else if (needNextButton) {
                         rowButtons.add(createInlineButton("Next", keyBoardNumb));
                     }
                     break;
@@ -339,44 +341,46 @@ public class Bot extends TelegramLongPollingBot {
 
     /**
      * Метод для определения количества свободных кнопок на клавиатуре
-     * @param rowSize кнопок в строке
-     * @param rowsQuantity количество строк
+     *
+     * @param rowSize        кнопок в строке
+     * @param rowsQuantity   количество строк
      * @param needNextButton является ли клавиатура крайней
      * @param needBackButton является ли клавиатура первой
      * @return колич-во свободных кнопок с учетом места под кнопки перехода
      */
     private static int getValuteButtonsQuantity(int rowSize, int rowsQuantity, boolean needNextButton, boolean needBackButton) {
         //если это единственная клавиатура (кнопки Next и Back не нужны)
-        if (needBackButton && needNextButton) return rowsQuantity * rowSize -2;
-        //если это первая или последняя клавиатура - резерв под одну кнопку Next или Back
+        if (needBackButton && needNextButton) return rowsQuantity * rowSize - 2;
+            //если это первая или последняя клавиатура - резерв под одну кнопку Next или Back
         else if (needBackButton || needNextButton) return rowsQuantity * rowSize - 1;
-        //если это промежуточная клавиатура - нужны обе кнопки Next и Back
+            //если это промежуточная клавиатура - нужны обе кнопки Next и Back
         else return rowsQuantity * rowSize;
     }
 
     /**
      * Метод создания кнопки валюты с флагом
      *
-     * @param charCode    код валюты
-     * @param affiliation принадлежность кнопки (для отслеживания callbackData с разных клавиатур от разных команд)
+     * @param charCode     код валюты
+     * @param keyBoardNumb принадлежность кнопки (для отслеживания callbackData с разных клавиатур от разных команд)
      * @return
      */
-    private InlineKeyboardButton createCurrencyButton(String charCode, String affiliation) {
+    private InlineKeyboardButton createCurrencyButton(String charCode, int keyBoardNumb) {
         return InlineKeyboardButton.builder()
                 .text(charCode + Flag.flags.get(charCode))
-                .callbackData(charCode + affiliation)
+                .callbackData(charCode + "_" + keyBoardNumb)
                 .build();
     }
 
     /**
      * Метод для создания кнопки Next/Back
      *
-     * @param text текст кнопки
+     * @param keyBoardNumb принадлежность кнопки (для отслеживания callbackData с разных клавиатур от разных команд)
+     * @param text         текст кнопки
      */
     private InlineKeyboardButton createInlineButton(String text, int keyBoardNumb) {
         return InlineKeyboardButton.builder()
                 .text(text)
-                .callbackData(text + keyBoardNumb)
+                .callbackData(text + "_" + keyBoardNumb)
                 .build();
     }
 

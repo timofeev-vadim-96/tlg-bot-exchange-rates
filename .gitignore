@@ -9,7 +9,7 @@ src/main/java/org/example/Test.java
 *.json
 src/main/resources/token.config
 src/main/resources/myId.txt
-фичи.md
+ideas.md
 
 .idea/modules.xml
 .idea/jarRepositories.xml
