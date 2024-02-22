@@ -9,6 +9,7 @@ import javax.xml.bind.JAXBException;
 import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.List;
 
 public class CbrConnector implements ExchangeRateGetter {
 
@@ -43,7 +44,7 @@ public class CbrConnector implements ExchangeRateGetter {
             String charCode = valute.getCharCode();
             if (charCode.equals("USD") || charCode.equals("EUR") ||
                     charCode.equals("CNY") || charCode.equals("GBP") || charCode.equals("JPY")) {
-                stringBuilder.append(formatExchangeRate(valute) + Flag.flags.get(valute.getCharCode()) + "\n");
+                stringBuilder.append(formatExchangeRate(valute) + "\n");
             }
         }
         return stringBuilder.toString();
@@ -57,7 +58,7 @@ public class CbrConnector implements ExchangeRateGetter {
         StringBuilder stringBuilder = new StringBuilder();
         for (Valute valute : response.getValutes()) {
             if (Flag.flags.containsKey(valute.getCharCode())) {
-                stringBuilder.append(formatExchangeRate(valute) + Flag.flags.get(valute.getCharCode()) + "\n");
+                stringBuilder.append(formatExchangeRate(valute) + "\n");
             } else {
                 stringBuilder.append(formatExchangeRate(valute) + "\n");
             }
@@ -72,8 +73,46 @@ public class CbrConnector implements ExchangeRateGetter {
     public String getSpecificExchangeRate(String charCode){
         CbrResponse response = getExchangeRates();
         return response.getValutes().stream().filter(valute -> valute.getCharCode().equals(charCode))
-                .findFirst().map(valute -> formatExchangeRate(valute) + Flag.flags.get(valute.getCharCode()))
+                .findFirst().map(this::formatExchangeRate)
                 .orElse(String.format("Валюта с таким символьным кодом \"%s\" не найдена.", charCode));
+    }
+
+    /**
+     * Метод конвертации определенного количества рублей в валюту
+     * @param rubles
+     * @param charCode
+     * @return
+     */
+    @Override
+    public String convert(double rubles, String charCode) {
+        CbrResponse response = getExchangeRates();
+        Valute valute = response.getValutes().stream().filter(val -> val.getCharCode().equals(charCode))
+                .findFirst().orElse(null);
+        if (valute == null){
+            return String.format("Валюта с таким символьным кодом \"%s\" не найдена.", charCode);
+        }
+        double valuteAmount = rubles * Double.parseDouble(valute.getVUnitRate());
+        return formatConvertResult(rubles, valuteAmount, charCode);
+    }
+
+    @Override
+    public List<Valute> getValutes() {
+        return getExchangeRates().getValutes();
+    }
+
+    /**
+     * Метод форматирования конвертации в валюту
+     * @param rubles рубли
+     * @param valuteAmount сумма в валюте
+     * @param charCode код валюты
+     */
+    private String formatConvertResult(double rubles, double valuteAmount, String charCode) {
+        StringBuilder res = new StringBuilder(String.format("%f Российский рубль = %f %s",
+                rubles, valuteAmount, charCode));
+        if (Flag.flags.containsKey(charCode)) {
+            res.append(Flag.flags.get(charCode));
+        }
+        return res.toString();
     }
 
     /**
@@ -82,8 +121,11 @@ public class CbrConnector implements ExchangeRateGetter {
      * @param valute объект валюты
      */
     private String formatExchangeRate(Valute valute) {
-        return String.format("%s Российский рубль = %d %s",
-                valute.getValue(), valute.getNominal(), valute.getName());
+        StringBuilder res = new StringBuilder(String.format("%s Российский рубль = %d %s",
+                valute.getValue(), valute.getNominal(), valute.getName()));
+        if (Flag.flags.containsKey(valute.getCharCode())) {
+            res.append(Flag.flags.get(valute.getCharCode()));
+        }
+        return res.toString();
     }
-
 }
