@@ -1,5 +1,9 @@
 package org.example.model;
 
+import lombok.SneakyThrows;
+import org.example.model.User.MessageCustom;
+import org.example.model.User.User;
+import org.example.model.User.UsersKeeper;
 import org.example.model.cbr.Valute;
 import org.example.services.exchangeRates.ExchangeRateGetter;
 import org.example.util.Flag;
@@ -19,12 +23,14 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.Keyboard
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardRow;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
-import javax.management.Query;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.*;
 
 public class Bot extends TelegramLongPollingBot {
     private ExchangeRateGetter exchangeRateGetter;
-    Map<Long, Double> conversionRequests;
+    private UsersKeeper users;
     private final String token;
     //клавиатура для команды /start
     private ReplyKeyboardMarkup replyKeyboardMarkup;
@@ -32,16 +38,17 @@ public class Bot extends TelegramLongPollingBot {
     private List<InlineKeyboardMarkup> convertKeyboards;
     private final String BOT_USERNAME = "w0nder_waffle_bot";
     private final String DOUBLE_REGEX = "[-+]?[0-9]*\\.?[0-9]+([eE][-+]?[0-9]+)?";
-    //для идентификации callbackData от кнопок - соответствия их клавиатуре
+    //идентификатор(счетчик) клавиатур
     private static int keyboardsTotalCounter = 1;
     //клавиатуры для котировок валют (кол-во рассчитывается автоматически. Зависит от размер n x m и от кол-ва валют)
-    List<InlineKeyboardMarkup> exchangeKeyboards;
+    private List<InlineKeyboardMarkup> exchangeKeyboards;
 
     public Bot(String token, ExchangeRateGetter exchangeRateGetter) {
         this.token = token;
         this.exchangeRateGetter = exchangeRateGetter;
 
-        conversionRequests = new HashMap<>();
+        users = new UsersKeeper(new ArrayList<>());
+//        conversionRequests = new HashMap<>();
 
         exchangeKeyboards = createKeyboards(4, 4, exchangeRateGetter.getValutes().stream().map(Valute::getCharCode).toList());
 
@@ -61,16 +68,18 @@ public class Bot extends TelegramLongPollingBot {
         return token;
     }
 
+    @SneakyThrows
     @Override
     public void onUpdateReceived(Update update) {
         //обработка CallbackQuery от нажатия кнопок
         if (update.hasCallbackQuery()) {
             callbackQueryHandler(update);
         } else if (update.hasMessage()) {
-            Long userId = update.getMessage().getFrom().getId();
+            long userId = update.getMessage().getFrom().getId();
             Message message = update.getMessage();
+            if (!users.isContained(userId)) addUser(message); //в БД
             if (message.isCommand()) {
-                commandsHandler(userId, message);
+                commandsHandler(message);
             } else {
                 handleMessage(userId, message);
             }
@@ -91,13 +100,13 @@ public class Bot extends TelegramLongPollingBot {
                 int keyboardListRange = exchangeKeyboards.size();
                 if (keyboardId <= keyboardListRange) {
                     sendMessage(userId, exchangeRateGetter.getSpecificExchangeRate(body));
+                    return;
                 }
 
                 //если пришло от клавиатуры конвертации в валюту
                 keyboardListRange += convertKeyboards.size();
-                System.out.println(keyboardListRange);
                 if (keyboardId <= keyboardListRange) {
-                    sendMessage(userId, exchangeRateGetter.convert(conversionRequests.get(userId), body));
+                    sendMessage(userId, exchangeRateGetter.convert(users.get(userId).getConversionRequest(), body));
                 }
             }
         } catch (TelegramApiException e) {
@@ -139,19 +148,19 @@ public class Bot extends TelegramLongPollingBot {
     /**
      * Метод - обработчик команд
      *
-     * @param userId  id пользователя
      * @param message сообщение
      */
-    private void commandsHandler(Long userId, Message message) {
+    private void commandsHandler(Message message) throws IOException {
         String command = message.getText();
+        long userId = message.getFrom().getId();
+
         if (command.contains("/convert")) {
-            //TODO конвертация
             String[] convertArr = command.split(" ");
             if (convertArr.length != 2 || !convertArr[1].matches(DOUBLE_REGEX)) { //2 - команда + сумма рублей
                 sendMessage(userId, "Пример правильного запроса для конвертации: \n" +
                         "\"/convert 1000\"");
             } else {
-                conversionRequests.put(userId, Double.parseDouble(convertArr[1]));
+                users.get(userId).setConversionRequest(Double.parseDouble(convertArr[1]));
                 sendMenu(userId, "<b>Выберите валюту для конвертации</b>", convertKeyboards.get(0));
             }
         } else if (command.equals("/exchange_rates")) sendMessage(userId, exchangeRateGetter.getBasicExchangeRates());
@@ -159,10 +168,23 @@ public class Bot extends TelegramLongPollingBot {
         else if (command.equals("/choose_currency"))
             sendMenu(userId, "<b>Выберите валюту</b>", (exchangeKeyboards.get(0)));
         else if (command.equals("/info")) sendMessage(userId, getInformation());
-        else if (command.equals("/start")) sendMenu(userId, "Welcome", replyKeyboardMarkup);
-            //todo else if (command.equals("/feedback"));  //связь с разработчиком
-            //todo else if (command.equals("/subscribe")); //подписка на курс выбранной валюты в 10:00 и в 19:00 по Москве (открытие и закрытие Мос. биржи)
-            //todo else if (command.equals("/dynamics"));  //Динамика ключевых валют за 1, 2, 3, 6, 12, 24, 36, 60 месяцев
+        else if (command.equals("/start")) {
+            sendMenu(userId, "Welcome", replyKeyboardMarkup);
+        } else if (command.contains("/feedback")) {
+            //TODO feedback
+            String[] feedbackArr = command.split(" ");
+            if (feedbackArr.length < 2) {
+                sendMessage(userId, prepareFeedbackMessage());
+            } else {
+                String msg = command.replace("/feedback", "").trim();
+                users.get(userId).getFeedbackMessages().add(new MessageCustom(userId, msg));
+                String devId = Files.readString(Paths.get("src/main/resources/myId.txt"));
+                sendMessage(Long.parseLong(devId), msg);
+                sendMessage(userId, "Спасибо за обратную связь!");
+            }
+        }
+        //todo else if (command.equals("/subscribe")); //подписка на курс выбранной валюты в 10:00 и в 19:00 по Москве (открытие и закрытие Мос. биржи)
+        //todo else if (command.equals("/dynamics"));  //Динамика ключевых валют за 1, 2, 3, 6, 12, 24, 36, 60 месяцев
         else sendMessage(userId, "Unknown command!");
     }
 
@@ -410,6 +432,35 @@ public class Bot extends TelegramLongPollingBot {
                 "/exchange_rates - котировки топ 5 валют Мира\n" +
                 "/exchange_rates_all - котировки всех валют Центробанка РФ\n" +
                 "/choose_currency - выбрать конкретную валюту\n" +
-                "/convert 1000 - конвертация в валюту по текущему курсу";
+                "/convert 1000 - конвертация в валюту по текущему курсу\n" +
+                "/feedback сообщение - обратная связь";
+    }
+
+    /**
+     * Метод создания и добавления нового пользователя на основе его Message
+     *
+     * @param message сообщение
+     */
+    private void addUser(Message message) {
+        for (User usr : users.getUsers()) {
+            if (usr.getUserId() == message.getFrom().getId()) return;
+        }
+
+        User user = new User
+                .Builder()
+                .withId(message.getFrom().getId())
+                .withFirstName(message.getFrom().getFirstName())
+                .withNickName(message.getFrom().getUserName())
+                .build();
+        users.add(user);
+    }
+
+    private String prepareFeedbackMessage(){
+        return "Связаться с разработчиком: timofeev.vadim.96@mail.ru\n" +
+                "---------------------------------------\n" +
+                "Чтобы оставить отзыв/пожелание/идею, отправьте сообщение через пробел после команды, " +
+                "по примеру: \n" +
+                "\"/feedback ваш текст\"";
     }
 }
+
