@@ -161,7 +161,7 @@ public class Bot extends TelegramLongPollingBot {
         else if (command.equals("/info")) sendMessage(userId, getInformation());
         else if (command.equals("/start")) sendMenu(userId, "Welcome", replyKeyboardMarkup);
             //todo else if (command.equals("/feedback"));  //связь с разработчиком
-            //todo else if (command.equals("subscribe")); //подписка на курс выбранной валюты в 10:00 и в 19:00 по Москве (открытие и закрытие Мос. биржи)
+            //todo else if (command.equals("/subscribe")); //подписка на курс выбранной валюты в 10:00 и в 19:00 по Москве (открытие и закрытие Мос. биржи)
             //todo else if (command.equals("/dynamics"));  //Динамика ключевых валют за 1, 2, 3, 6, 12, 24, 36, 60 месяцев
         else sendMessage(userId, "Unknown command!");
     }
