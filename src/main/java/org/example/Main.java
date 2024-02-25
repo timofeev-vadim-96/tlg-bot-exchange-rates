@@ -1,6 +1,8 @@
 package org.example;
 
-import org.example.model.Bot;
+import org.example.controller.Bot;
+import org.example.dao.DaoImpl;
+import org.example.controller.UsersController;
 import org.example.services.exchangeRates.CbrConnector;
 import org.telegram.telegrambots.meta.TelegramBotsApi;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
@@ -15,14 +17,15 @@ public class Main {
         String token = Files.readString(Paths.get("src/main/resources/token.config"));
         String myId = Files.readString(Paths.get("src/main/resources/myId.txt"));
 
-        Bot bot = new Bot(token, new CbrConnector());
+        UsersController usersController = new UsersController(new DaoImpl());
+        Bot bot = new Bot(token, new CbrConnector(), usersController);
         registration(bot);
 
         bot.sendMessage(Long.parseLong(myId), "Bot is active now!");
     }
 
     /**
-     * Регистрация бота в API Telegram
+     * Р РµРіРёСЃС‚СЂР°С†РёСЏ Р±РѕС‚Р° РІ API Telegram
      */
     private static void registration(Bot bot) throws TelegramApiException {
         TelegramBotsApi botsApi = new TelegramBotsApi(DefaultBotSession.class);

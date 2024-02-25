@@ -1,0 +1,10 @@
+version: '3.0'
+services:
+  telegram_bot_container:
+    image: mysql:latest
+    environment:
+      MYSQL_ROOT_PASSWORD: lokation
+    ports:
+      - 3306:3306
+    volumes:
+      - ./exchange_rates_bot_db:/var/lib/mysql
