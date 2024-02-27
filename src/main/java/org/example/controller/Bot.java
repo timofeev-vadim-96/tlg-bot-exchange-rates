@@ -1,6 +1,9 @@
 package org.example.controller;
 
+import lombok.Getter;
 import lombok.SneakyThrows;
+import org.example.controller.subscription.ScheduledNotifier;
+import org.example.controller.users.UsersController;
 import org.example.model.User.Feedback;
 import org.example.model.User.Subscription;
 import org.example.model.User.User;
@@ -29,8 +32,10 @@ import java.nio.file.Paths;
 import java.util.*;
 
 public class Bot extends TelegramLongPollingBot {
+    @Getter
     private ExchangeRateGetter exchangeRateGetter;
     private UsersController controller;
+    private ScheduledNotifier scheduledNotifier;
     private final String token;
     //клавиатура для команды /start
     private ReplyKeyboardMarkup replyKeyboardMarkup;
@@ -49,6 +54,10 @@ public class Bot extends TelegramLongPollingBot {
         this.token = token;
         this.exchangeRateGetter = exchangeRateGetter;
         this.controller = controller;
+
+        //запуск рассылки подписок (под капотом новые потоки)
+        scheduledNotifier = new ScheduledNotifier(this, controller);
+        scheduledNotifier.startScheduling();
 
         exchangeKeyboards = createKeyboards(4, 4, exchangeRateGetter.getValutes().stream().map(Valute::getCharCode).toList());
 
@@ -164,6 +173,7 @@ public class Bot extends TelegramLongPollingBot {
     public void sendMessage(long userId, String message) {
         SendMessage sm = SendMessage.builder()
                 .chatId(String.valueOf(userId)) //id пользователя
+                .parseMode("HTML")
                 .text(message) //текст сообщения
                 .build();
         try {
@@ -215,7 +225,6 @@ public class Bot extends TelegramLongPollingBot {
         else if (command.equals("/subscribe")) {
             sendMenu(userId, "<b>Выберите валюту для подписки</b>", subscribeKeyboards.get(0));
         }
-        //todo отписка от валют
         else if (command.equals("/unsubscribe")) {
             List<String> userCurrentSubscriptions = controller.get(userId).getSubscriptions()
                     .stream().map(Subscription::getCharCode).toList();

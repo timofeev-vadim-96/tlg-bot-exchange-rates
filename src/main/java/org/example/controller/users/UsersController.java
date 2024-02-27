@@ -1,6 +1,8 @@
-package org.example.controller;
+package org.example.controller.users;
 
 import lombok.Getter;
+import org.example.controller.Bot;
+import org.example.controller.subscription.ScheduledNotifier;
 import org.example.dao.Dao;
 import org.example.model.User.Subscription;
 import org.example.model.User.User;
@@ -15,7 +17,7 @@ public class UsersController {
     @Getter
     Map<Long, Double> convertRequests;
 
-    public UsersController(Dao dao) {
+    public UsersController (Dao dao) {
         this.dao = dao;
         convertRequests = new HashMap<>();
     }

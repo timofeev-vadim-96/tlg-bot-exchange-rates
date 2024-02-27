@@ -2,7 +2,7 @@ package org.example;
 
 import org.example.controller.Bot;
 import org.example.dao.DaoImpl;
-import org.example.controller.UsersController;
+import org.example.controller.users.UsersController;
 import org.example.services.exchangeRates.CbrConnector;
 import org.telegram.telegrambots.meta.TelegramBotsApi;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
