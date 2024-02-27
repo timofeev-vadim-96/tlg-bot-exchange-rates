@@ -4,9 +4,12 @@ import lombok.Getter;
 import org.example.controller.Bot;
 import org.example.controller.subscription.ScheduledNotifier;
 import org.example.dao.Dao;
+import org.example.model.User.Feedback;
 import org.example.model.User.Subscription;
 import org.example.model.User.User;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -66,7 +69,6 @@ public class UsersController {
         User user = get(telegramId);
 
         Subscription subscription = new Subscription(charCode);
-        System.out.println(dao.findAll(Subscription.class).contains(subscription));
 
         //если такой подписки в базе нет - добавляем в базу
         if (!dao.findAll(Subscription.class).contains(subscription)){
@@ -94,7 +96,10 @@ public class UsersController {
     // region Feedback
     public void addFeedback(long telegramId, String text){
         User user = get(telegramId);
-        user.addFeedback(text);
+
+        Feedback feedback = new Feedback(user.getFirstName() + ": " + text);
+
+        user.addFeedback(feedback);
         dao.update(user);
     }
 

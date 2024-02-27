@@ -4,6 +4,7 @@ import lombok.*;
 
 import javax.persistence.*;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -19,7 +20,7 @@ public class User {
     @Column(name = "nick_name")
     private String nickName;
     private String phone;
-    @OneToMany(mappedBy = "id", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     private List<Feedback> feedbackMessages;
     @ManyToMany(cascade = {CascadeType.PERSIST, CascadeType.MERGE}, fetch = FetchType.EAGER)
     @JoinTable(name = "user_subscription",
@@ -29,6 +30,7 @@ public class User {
 
     public User() {
         feedbackMessages = new ArrayList<>();
+        subscriptions = new HashSet<>();
     }
 
     //region Subscription
@@ -52,11 +54,13 @@ public class User {
 
     //region Feedback
     public void addFeedback(Feedback feedback){
+        feedback.setUser(this);
         feedbackMessages.add(feedback);
     }
 
     public void addFeedback(String text){
         Feedback feedback = new Feedback(text);
+        feedback.setUser(this);
         feedbackMessages.add(feedback);
     }
 

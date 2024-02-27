@@ -33,7 +33,7 @@ public class ScheduledNotifier {
         // Расписание выполнения задачи
         executor.scheduleAtFixedRate(() -> {
             schedule("<b>Добрый день! Ваша утренняя рассылка курсов валют:</b>");
-        }, getDelayUntilNextExecution(10, 0), HOUR_IN_MILLISECONDS, TimeUnit.MILLISECONDS); // Запуск каждые 24 часа
+        }, getDelayUntilNextExecution(10, 00), HOUR_IN_MILLISECONDS, TimeUnit.MILLISECONDS); // Запуск каждые 24 часа
 
         executor.scheduleAtFixedRate(() -> {
             schedule("<b>Добрый вечер! Ваша вечерняя рассылка курсов валют:</b>");
@@ -55,9 +55,9 @@ public class ScheduledNotifier {
                     .collect(Collectors.toSet());
             if (!subscriptions.isEmpty()) {
                 bot.sendMessage(user.getId(), greeting);
-            }
-            for (String subscription : subscriptions) {
-                bot.sendMessage(user.getId(), bot.getExchangeRateGetter().getSpecificExchangeRate(subscription));
+                for (String subscription : subscriptions) {
+                    bot.sendMessage(user.getId(), bot.getExchangeRateGetter().getSpecificExchangeRate(subscription));
+                }
             }
         }
     }

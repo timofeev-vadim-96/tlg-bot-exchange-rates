@@ -90,11 +90,6 @@ public class Bot extends TelegramLongPollingBot {
         } else if (update.hasMessage()) {
             Message message = update.getMessage();
             long userId = message.getFrom().getId();
-            //todo перенести в /start
-//            if (!controller.isContained(userId)) {
-//                addUser(message); //в БД
-//            }
-
             if (message.isCommand()) {
                 commandsHandler(message);
             } else {
@@ -141,7 +136,7 @@ public class Bot extends TelegramLongPollingBot {
 
                 //если пришло от клавиатуры отписки
                 keyboardListRange += personalSubscriptionsKeyboardsLists.get(userId).size();
-                if (keyboardId <= keyboardListRange){
+                if (keyboardId <= keyboardListRange) {
                     controller.removeSubscription(userId, body);
                     sendMessage(userId, "Вы отписались от " + body);
                 }
@@ -207,6 +202,10 @@ public class Bot extends TelegramLongPollingBot {
             sendMenu(userId, "<b>Выберите валюту</b>", (exchangeKeyboards.get(0)));
         else if (command.equals("/info")) sendMessage(userId, getInformation());
         else if (command.equals("/start")) {
+            //сохранение общих данных пользователя в БД
+            if (!controller.isContained(userId)) {
+                addUser(message);
+            }
             sendMenu(userId, "Welcome", replyKeyboardMarkup);
         } else if (command.contains("/feedback")) {
             String[] feedbackArr = command.split(" ");
@@ -214,18 +213,17 @@ public class Bot extends TelegramLongPollingBot {
                 sendMessage(userId, prepareFeedbackMessage());
             } else {
                 String msg = command.replace("/feedback", "").trim();
-                controller.get(userId).getFeedbackMessages().add(new Feedback(msg));
+                controller.addFeedback(userId, msg);
+
                 String devId = Files.readString(Paths.get("src/main/resources/myId.txt"));
                 //сообщение разработчику
                 sendMessage(Long.parseLong(devId), "feedback от " + message.getFrom().getUserName() + ": " + msg);
+
                 sendMessage(userId, "Спасибо за обратную связь!");
             }
-        }
-        //todo подписка на курс выбранной валюты в 10:00 и в 19:00 по Москве (открытие и закрытие Мос. биржи)
-        else if (command.equals("/subscribe")) {
+        } else if (command.equals("/subscribe")) {
             sendMenu(userId, "<b>Выберите валюту для подписки</b>", subscribeKeyboards.get(0));
-        }
-        else if (command.equals("/unsubscribe")) {
+        } else if (command.equals("/unsubscribe")) {
             List<String> userCurrentSubscriptions = controller.get(userId).getSubscriptions()
                     .stream().map(Subscription::getCharCode).toList();
             List<InlineKeyboardMarkup> personalSubscriptionKeyboards =
@@ -481,10 +479,10 @@ public class Bot extends TelegramLongPollingBot {
                 "/exchange_rates_all - котировки всех валют Центробанка РФ\n" +
                 "/choose_currency - выбрать конкретную валюту\n" +
                 "/convert 1000 - конвертация в валюту по текущему курсу\n" +
-                "/feedback сообщение - обратная связь\n" +
                 "/subscribe - подписаться на рассылку курсов валют по открытию/закрытию\n" +
                 "Московской валютной биржи: 10:00 и 19:00 (будни)\n" +
                 "/unsubscribe - отписаться от валюты\n" +
+                "/feedback сообщение - обратная связь\n" +
                 "/info - о боте";
     }
 
