@@ -46,14 +46,24 @@
 Скриншоты:  
 
 `info`
-
 ![info](img/tlg_info.png)
 
 `exchange_rates`
-
-![exchange_rates](img/tlg_exchange_rates.png)
+![exchange_rates](img/exchange_rates.png)
 
 `choose_currency`
+![choose_currency](img/choose_currency.png)
 
-![keyboard](img/tlg_keyboard.png)
+`convertation`
+![convertation](img/convertation.png)
+
+`subscription`
+![subscription](img/subscription.png)
+
+`unsubscription`
+![subscription](img/unsubscription.png)
+
+`dynamics`
+![dynamics](img/valute_dynamics.png)
+
 
