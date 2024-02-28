@@ -4,7 +4,6 @@ import lombok.Getter;
 import lombok.SneakyThrows;
 import org.example.controller.subscription.ScheduledNotifier;
 import org.example.controller.users.UsersController;
-import org.example.model.User.Feedback;
 import org.example.model.User.Subscription;
 import org.example.model.User.User;
 import org.example.model.cbr.Valute;
@@ -49,6 +48,10 @@ public class Bot extends TelegramLongPollingBot {
     private List<InlineKeyboardMarkup> exchangeKeyboards;
     private List<InlineKeyboardMarkup> subscribeKeyboards;
     private Map<Long, List<InlineKeyboardMarkup>> personalSubscriptionsKeyboardsLists;
+    //клавиатура для периодов динамики курсов
+    private List<InlineKeyboardMarkup> dynamicPeriodsKeyboards;
+    //клавиатура для выбора валюты для вывода динамики курсов
+    private List<InlineKeyboardMarkup> dynamicValuteChoiceKeyboards;
 
     public Bot(String token, ExchangeRateGetter exchangeRateGetter, UsersController controller) {
         this.token = token;
@@ -59,12 +62,19 @@ public class Bot extends TelegramLongPollingBot {
         scheduledNotifier = new ScheduledNotifier(this, controller);
         scheduledNotifier.startScheduling();
 
-        exchangeKeyboards = createKeyboards(4, 4, exchangeRateGetter.getValutes().stream().map(Valute::getCharCode).toList());
+        exchangeKeyboards = createKeyboards(4, 4, exchangeRateGetter.getValutes().stream().map(Valute::getCharCode).toList(), true);
 
         List<String> mainValutes = List.of("USD", "EUR", "GBP", "CNY", "JPY", "HKD", "KZT", "UAH", "BYN", "TRY", "CHF");
-        convertKeyboards = createKeyboards(4, 4, mainValutes);
+        convertKeyboards = createKeyboards(4, 4, mainValutes, true);
 
-        subscribeKeyboards = createKeyboards(4, 4, mainValutes);
+        subscribeKeyboards = createKeyboards(4, 4, mainValutes, true);
+
+        List<String> dynamicsPeriods =
+                List.of("1 неделя", "2 недели", "3 недели", "1 месяц", "2 месяца", "3 месяца",
+                        "6 месяцев", "1 год", "2 года", "3 года", "5 лет", "7 лет", "10 лет");
+        dynamicPeriodsKeyboards = createKeyboards(4, 4, dynamicsPeriods, false);
+
+        dynamicValuteChoiceKeyboards = createKeyboards(4, 4, mainValutes, true);
 
         personalSubscriptionsKeyboardsLists = new HashMap<>();
 
@@ -134,11 +144,34 @@ public class Bot extends TelegramLongPollingBot {
                     return;
                 }
 
+                //если пришло от клавиатуры периодов динамики
+                keyboardListRange += dynamicPeriodsKeyboards.size();
+                if (keyboardId <= keyboardListRange) {
+                    if (body.split(" ").length == 2) {
+                        controller.getDynamicPeriodRequests().put(userId, body);
+                        sendMenu(userId, "<b>Выберите валюту для отображения динамики:</b>",
+                                dynamicValuteChoiceKeyboards.get(0));
+                    }
+                    return;
+                }
+
+                //если пришло от клавиатуры выбора валюты для вывода динамики
+                keyboardListRange += dynamicValuteChoiceKeyboards.size();
+                if (keyboardId <= keyboardListRange) {
+                    String[] periodRequest = controller.getDynamicPeriodRequests().get(userId).split(" ");
+                    short unit = Short.parseShort(periodRequest[0]);
+                    String timeUnit = periodRequest[1];
+                    sendMessage(userId, exchangeRateGetter.getDynamics(timeUnit, unit, body));
+                    return;
+                }
+
+                //todo создается в процессе выполнения программы, поэтому этот блок оставлять ПОСЛЕДНИМ
                 //если пришло от клавиатуры отписки
                 keyboardListRange += personalSubscriptionsKeyboardsLists.get(userId).size();
                 if (keyboardId <= keyboardListRange) {
                     controller.removeSubscription(userId, body);
                     sendMessage(userId, "Вы отписались от " + body);
+                    return;
                 }
             }
         } catch (TelegramApiException e) {
@@ -227,12 +260,12 @@ public class Bot extends TelegramLongPollingBot {
             List<String> userCurrentSubscriptions = controller.get(userId).getSubscriptions()
                     .stream().map(Subscription::getCharCode).toList();
             List<InlineKeyboardMarkup> personalSubscriptionKeyboards =
-                    createKeyboards(4, 4, userCurrentSubscriptions);
+                    createKeyboards(4, 4, userCurrentSubscriptions, true);
             personalSubscriptionsKeyboardsLists.put(userId, personalSubscriptionKeyboards);
             sendMenu(userId, "<b>Выберите валюту для отписки</b>", personalSubscriptionsKeyboardsLists.get(userId).get(0));
-        }
-        //todo else if (command.equals("/dynamics"));  //Динамика ключевых валют за 1, 2, 3, 6, 12, 24, 36, 60 месяцев
-        else sendMessage(userId, "Unknown command!");
+        } else if (command.equals("/dynamics")) {
+            sendMenu(userId, "<b>Выберите период времени:</b>", dynamicPeriodsKeyboards.get(0));
+        } else sendMessage(userId, "Unknown command!");
     }
 
     /**
@@ -311,7 +344,7 @@ public class Bot extends TelegramLongPollingBot {
      * @param charCodesAll список кодов валют
      * @return
      */
-    private List<InlineKeyboardMarkup> createKeyboards(int rows, int columns, List<String> charCodesAll) {
+    private List<InlineKeyboardMarkup> createKeyboards(int rows, int columns, List<String> charCodesAll, boolean needForFlags) {
         List<InlineKeyboardMarkup> keyboards = new ArrayList<>();
         int keyboardsQuantity = getKeyboardsQuantity(rows, columns, charCodesAll);
         int subListStartPosition = 0;
@@ -327,7 +360,7 @@ public class Bot extends TelegramLongPollingBot {
             if (subListEndPosition >= charCodesAll.size()) subListEndPosition = charCodesAll.size();
             List<String> charCodesSublist = charCodesAll.subList(subListStartPosition, subListEndPosition);
             keyboards.add(createKeyboard(columns, rows, charCodesSublist, keyboardsTotalCounter++,
-                    needNextButton, needBackButton));
+                    needNextButton, needBackButton, needForFlags));
             subListStartPosition += valuteButtonsQuantity;
         }
         return keyboards;
@@ -370,7 +403,7 @@ public class Bot extends TelegramLongPollingBot {
      * @param needNextButton последняя ли это клавиатура (от этого зависит наличие кнопки Next или Back)
      * @return клавиатуру с кнопками
      */
-    private InlineKeyboardMarkup createKeyboard(int rowSize, int rowsQuantity, List<String> charCodeList, int keyBoardNumb, boolean needNextButton, boolean needBackButton) {
+    private InlineKeyboardMarkup createKeyboard(int rowSize, int rowsQuantity, List<String> charCodeList, int keyBoardNumb, boolean needNextButton, boolean needBackButton, boolean needForFlags) {
         InlineKeyboardMarkup keyboardMarkup = new InlineKeyboardMarkup();
         //-1 - резерв для кнопки (Next/Back) в последней строке, если -2 - то для обоих кнопок (если клавиатура посередине других по логике)
         int valuteButtonsQuantity = getValuteButtonsQuantity(rowSize, rowsQuantity, needNextButton, needBackButton);
@@ -386,7 +419,11 @@ public class Bot extends TelegramLongPollingBot {
             for (int j = 0; j < rowSize; j++) {
 
                 if (k < charCodeList.size()) {
-                    rowButtons.add(createCurrencyButton(charCodeList.get(k), keyBoardNumb));
+                    if (needForFlags) {
+                        rowButtons.add(createCurrencyButton(charCodeList.get(k), keyBoardNumb));
+                    } else {
+                        rowButtons.add(createInlineButton(charCodeList.get(k), keyBoardNumb));
+                    }
                 }
                 //когда элементы в списке заканчиваются - добавляем кнопки Next/Back
                 else {
@@ -441,7 +478,7 @@ public class Bot extends TelegramLongPollingBot {
     }
 
     /**
-     * Метод для создания кнопки Next/Back
+     * Метод для создания кнопки с текстом
      *
      * @param keyBoardNumb принадлежность кнопки (для отслеживания callbackData с разных клавиатур от разных команд)
      * @param text         текст кнопки
@@ -482,6 +519,7 @@ public class Bot extends TelegramLongPollingBot {
                 "/subscribe - подписаться на рассылку курсов валют по открытию/закрытию\n" +
                 "Московской валютной биржи: 10:00 и 19:00 (будни)\n" +
                 "/unsubscribe - отписаться от валюты\n" +
+                "/dynamics - динамика курса валют за выбранный период\n" +
                 "/feedback сообщение - обратная связь\n" +
                 "/info - о боте";
     }

@@ -3,7 +3,7 @@ package org.example.util;
 import org.hibernate.Session;
 import org.hibernate.Transaction;
 
-public class Initializer {
+public class TablesInitializer {
     public static void init (){
         try (Session session = HibernateSessionFactoryUtil.getSessionFactory().openSession()){
             Transaction transaction = session.beginTransaction();

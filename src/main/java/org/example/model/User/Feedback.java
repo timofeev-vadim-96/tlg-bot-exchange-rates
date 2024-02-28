@@ -2,7 +2,6 @@ package org.example.model.User;
 
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.ToString;
 
 import javax.persistence.*;
 

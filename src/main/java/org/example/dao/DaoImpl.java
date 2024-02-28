@@ -1,7 +1,7 @@
 package org.example.dao;
 
 import org.example.util.HibernateSessionFactoryUtil;
-import org.example.util.Initializer;
+import org.example.util.TablesInitializer;
 import org.hibernate.Session;
 import org.hibernate.Transaction;
 
@@ -10,7 +10,7 @@ import java.util.List;
 public class DaoImpl implements Dao {
 
     public DaoImpl() {
-        Initializer.init();
+        TablesInitializer.init();
     }
 
     /**

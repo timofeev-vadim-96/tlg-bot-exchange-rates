@@ -33,7 +33,7 @@ public class ScheduledNotifier {
         // Расписание выполнения задачи
         executor.scheduleAtFixedRate(() -> {
             schedule("<b>Добрый день! Ваша утренняя рассылка курсов валют:</b>");
-        }, getDelayUntilNextExecution(10, 00), HOUR_IN_MILLISECONDS, TimeUnit.MILLISECONDS); // Запуск каждые 24 часа
+        }, getDelayUntilNextExecution(10, 0), HOUR_IN_MILLISECONDS, TimeUnit.MILLISECONDS); // Запуск каждые 24 часа
 
         executor.scheduleAtFixedRate(() -> {
             schedule("<b>Добрый вечер! Ваша вечерняя рассылка курсов валют:</b>");
@@ -45,8 +45,6 @@ public class ScheduledNotifier {
      * Метод отправки уведомлений пользователям по их подпискам
      */
     private void schedule(String greeting) {
-        //todo
-        System.out.println("Исполнение метода отправки сообщений по ПОДПИСКЕ");
         List<User> users = usersController.getUsers();
         for (User user : users) {
             Set<String> subscriptions = user.getSubscriptions()

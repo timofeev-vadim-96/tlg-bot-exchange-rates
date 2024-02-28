@@ -1,28 +1,27 @@
 package org.example.controller.users;
 
 import lombok.Getter;
-import org.example.controller.Bot;
-import org.example.controller.subscription.ScheduledNotifier;
 import org.example.dao.Dao;
 import org.example.model.User.Feedback;
 import org.example.model.User.Subscription;
 import org.example.model.User.User;
 
-import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 
 public class UsersController {
-    Dao dao;
+    private Dao dao;
     @Getter
-    Map<Long, Double> convertRequests;
+    private Map<Long, Double> convertRequests;
+    @Getter
+    private Map<Long, String> dynamicPeriodRequests;
 
     public UsersController (Dao dao) {
         this.dao = dao;
         convertRequests = new HashMap<>();
+        dynamicPeriodRequests = new HashMap<>();
     }
 
     public UsersController add(User user){
