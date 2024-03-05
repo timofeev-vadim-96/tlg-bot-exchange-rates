@@ -2,7 +2,7 @@ package org.example.util;
 
 import org.example.model.User.Feedback;
 import org.example.model.User.Subscription;
-import org.example.model.User.User;
+import org.example.model.User.UserApp;
 import org.hibernate.SessionFactory;
 import org.hibernate.cfg.Configuration;
 
@@ -22,7 +22,7 @@ public class HibernateSessionFactoryUtil {
         if (sessionFactory == null) {
             try {
                 Configuration configuration = new Configuration().configure();
-                configuration.addAnnotatedClass(User.class);
+                configuration.addAnnotatedClass(UserApp.class);
                 configuration.addAnnotatedClass(Feedback.class);
                 configuration.addAnnotatedClass(Subscription.class);
                 sessionFactory = configuration.buildSessionFactory();

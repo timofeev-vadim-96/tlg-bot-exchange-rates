@@ -8,45 +8,24 @@ import java.io.*;
 import java.util.stream.Collectors;
 
 /**
- * Класс для конвертации и обратно классов в XML-формат для передачи данных
+ * Класс для конвертации объектов в XML-формат и обратно
  */
 public class XmlConverterUtil {
-    /**
-     * Метод для демаршалинга объекта из файла XML в объект Java
-     *
-     * @param xmlFileName файл XML
-     * @return java-объект
-     * @throws FileNotFoundException
-     * @throws JAXBException
-     */
-    public static <T> T unmarshall(String xmlFileName, Class<T> classType) throws IOException, JAXBException {
-        StringReader reader;
-        Unmarshaller unmarshaller;
-        try (BufferedReader br = new BufferedReader(new FileReader(xmlFileName))) {
-            String body = br.lines().collect(Collectors.joining());
-            reader = new StringReader(body);
-            JAXBContext context = JAXBContext.newInstance(classType); //в скобках класс, к которому приводим
-            unmarshaller = context.createUnmarshaller();
-        }
-        return (T) unmarshaller.unmarshal(reader);
-    }
 
     /**
      * Метод для маршалинга подготовленых объектов с помощью библиотеки JAXB в файл XML
      *
      * @param convertableObject объект для маршалинга
-     * @param xmlFileName       целевой файл для записи XML
      * @throws JAXBException
      * @throws IOException
      */
-    public static <T> void marshall(T convertableObject, String xmlFileName) throws JAXBException, IOException {
+    public static <T> Writer marshall(T convertableObject) throws JAXBException, IOException {
         try (StringWriter writer = new StringWriter()) {
-            File file = new File(xmlFileName);
             JAXBContext context = JAXBContext.newInstance(convertableObject.getClass());
             Marshaller marshaller = context.createMarshaller();
             marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, Boolean.TRUE);
             marshaller.marshal(convertableObject, writer);
-            marshaller.marshal(convertableObject, file);
+            return writer;
         }
     }
 
@@ -57,7 +36,7 @@ public class XmlConverterUtil {
      * @return T t
      * @param <T> тип
      */
-    public static <T> T unmarshallStream(Reader in, Class<T> classType) throws IOException, JAXBException {
+    public static <T> T unmarshall(Reader in, Class<T> classType) throws IOException, JAXBException {
         StringReader reader;
         Unmarshaller unmarshaller;
         try (BufferedReader br = new BufferedReader(in)) {

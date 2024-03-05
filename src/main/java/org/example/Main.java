@@ -1,6 +1,6 @@
 package org.example;
 
-import org.example.controller.Bot;
+import org.example.controller.bot.Bot;
 import org.example.dao.DaoImpl;
 import org.example.controller.users.UsersController;
 import org.example.services.exchangeRates.CbrConnector;

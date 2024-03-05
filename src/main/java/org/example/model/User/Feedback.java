@@ -16,7 +16,7 @@ public class Feedback {
     private String text;
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "user_id")
-    private User user;
+    private UserApp user;
 
     public Feedback(String text) {
         this.text = text;

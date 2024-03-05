@@ -6,10 +6,18 @@
     <file url="file://$PROJECT_DIR$/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/src/main/java/org/example/Main.java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/src/main/java/org/example/Test.java" charset="UTF-8" />
-    <file url="file://$PROJECT_DIR$/src/main/java/org/example/controller/Bot.java" charset="UTF-8" />
-    <file url="file://$PROJECT_DIR$/src/main/java/org/example/model/cbr/CbrResponse.java" charset="windows-1251" />
+    <file url="file://$PROJECT_DIR$/src/main/java/org/example/controller/bot/Bot.java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/src/main/java/org/example/model/cbr/CbrResponse.java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/src/main/java/org/example/services/exchangeRates/CbrConnector.java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/src/test/java/org/example/controller/bot/BotTest.java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/src/test/java/org/example/controller/subscription/ScheduledNotifierTest.java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/src/test/java/org/example/controller/users/UsersControllerTest.java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/src/test/java/org/example/dao/DaoImplTest.java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/src/test/java/org/example/services/exchangeRates/CbrConnectorTest.java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/src/test/java/org/example/util/HibernateSessionFactoryUtilTest.java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/src/test/java/org/example/util/TablesInitializerTest.java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/src/test/java/org/example/util/XmlConverterUtilTest.java" charset="UTF-8" />
     <file url="PROJECT" charset="windows-1251" />
   </component>
 </project>

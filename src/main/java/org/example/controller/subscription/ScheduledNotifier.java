@@ -1,29 +1,34 @@
 package org.example.controller.subscription;
 
-import org.example.controller.Bot;
+import org.example.controller.bot.Bot;
 import org.example.controller.users.UsersController;
 import org.example.model.User.Subscription;
-import org.example.model.User.User;
+import org.example.model.User.UserApp;
 
 import java.util.Calendar;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 public class ScheduledNotifier {
     private UsersController usersController;
     private Bot bot;
-    private ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(2);
     private final static long HOUR_IN_MILLISECONDS = 86_400_000;
+    private Map<Integer, Integer> tasksTimes;
 
-    //создает пул потоков для выполнения задач
-    private ScheduledExecutorService executor = Executors.newScheduledThreadPool(2);
-    public ScheduledNotifier(Bot bot, UsersController usersController) {
+
+    private ScheduledExecutorService executor;
+    public ScheduledNotifier(Bot bot, UsersController usersController, Map<Integer, Integer> tasksTimes) {
         this.usersController = usersController;
         this.bot = bot;
+        this.tasksTimes = tasksTimes;
+        //создает пул потоков, зависящий от количества задач по временам
+        executor = Executors.newScheduledThreadPool(tasksTimes.size());
     }
 
     /**
@@ -31,13 +36,34 @@ public class ScheduledNotifier {
      */
     public void startScheduling() {
         // Расписание выполнения задачи
-        executor.scheduleAtFixedRate(() -> {
-            schedule("<b>Добрый день! Ваша утренняя рассылка курсов валют:</b>");
-        }, getDelayUntilNextExecution(10, 0), HOUR_IN_MILLISECONDS, TimeUnit.MILLISECONDS); // Запуск каждые 24 часа
+        tasksTimes.forEach((targetHour,targetMinute)->{
+            //ночь
+            if (0 <= targetHour && targetHour < 4 || targetHour == 23){
+                getScheduledFuture("<b>Доброй ночи! Ваша ночная рассылка курсов валют:</b>",
+                        targetHour, targetMinute);
+            }
+            //утро
+            else if (4 <= targetHour && targetHour < 11){
+                getScheduledFuture("<b>Доброе утро! Ваша утренняя рассылка курсов валют:</b>",
+                        targetHour, targetMinute);
+            }
+            //день
+            else if (11 <= targetHour && targetHour < 16){
+                getScheduledFuture("<b>Добрый день! Ваша дневная рассылка курсов валют:</b>",
+                        targetHour, targetMinute);
+            }
+            //вечер
+            else if (16 <= targetHour && targetHour < 23){
+                getScheduledFuture("<b>Добрый вечер! Ваша вечерняя рассылка курсов валют:</b>",
+                        targetHour, targetMinute);
+            }
+        });
+    }
 
-        executor.scheduleAtFixedRate(() -> {
-            schedule("<b>Добрый вечер! Ваша вечерняя рассылка курсов валют:</b>");
-        }, getDelayUntilNextExecution(19, 0), HOUR_IN_MILLISECONDS, TimeUnit.MILLISECONDS); // Запуск каждые 24 часа
+    private ScheduledFuture<?> getScheduledFuture(String greeting, int targetHour, int targetMinute) {
+        return executor.scheduleAtFixedRate(() -> {
+            schedule(greeting);
+        }, getDelayUntilNextExecution(targetHour, targetMinute), HOUR_IN_MILLISECONDS, TimeUnit.MILLISECONDS);
     }
 
 
@@ -45,16 +71,16 @@ public class ScheduledNotifier {
      * Метод отправки уведомлений пользователям по их подпискам
      */
     private void schedule(String greeting) {
-        List<User> users = usersController.getUsers();
-        for (User user : users) {
-            Set<String> subscriptions = user.getSubscriptions()
+        List<UserApp> userApps = usersController.getUsers();
+        for (UserApp userApp : userApps) {
+            Set<String> subscriptions = userApp.getSubscriptions()
                     .stream()
                     .map(Subscription::getCharCode)
                     .collect(Collectors.toSet());
             if (!subscriptions.isEmpty()) {
-                bot.sendMessage(user.getId(), greeting);
+                bot.sendMessage(userApp.getId(), greeting);
                 for (String subscription : subscriptions) {
-                    bot.sendMessage(user.getId(), bot.getExchangeRateGetter().getSpecificExchangeRate(subscription));
+                    bot.sendMessage(userApp.getId(), bot.getExchangeRateGetter().getSpecificExchangeRate(subscription));
                 }
             }
         }

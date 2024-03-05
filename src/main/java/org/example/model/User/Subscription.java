@@ -24,15 +24,15 @@ public class Subscription {
     @JoinTable(name = "user_subscription",
             joinColumns = @JoinColumn(name = "subscription_id", referencedColumnName = "id"),
             inverseJoinColumns = @JoinColumn(name = "user_id", referencedColumnName = "id"))
-    private Set<User> users;
+    private Set<UserApp> userApps;
 
     public Subscription() {
-        users = new HashSet<>();
+        userApps = new HashSet<>();
     }
 
     public Subscription(String charCode) {
         this.charCode = charCode;
-        users = new HashSet<>();
+        userApps = new HashSet<>();
     }
 
     @Override

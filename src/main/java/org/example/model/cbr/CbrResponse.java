@@ -6,7 +6,7 @@ import javax.xml.bind.annotation.*;
 import java.util.List;
 
 /**
- * Сущность для конвертации ответа от Центробанка РФ
+ * РЎСѓС‰РЅРѕСЃС‚СЊ РґР»СЏ РєРѕРЅРІРµСЂС‚Р°С†РёРё РѕС‚РІРµС‚Р° РѕС‚ Р¦РµРЅС‚СЂРѕР±Р°РЅРєР° Р Р¤
  */
 @NoArgsConstructor
 @AllArgsConstructor

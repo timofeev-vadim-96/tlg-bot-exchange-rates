@@ -1,11 +1,11 @@
-package org.example.controller;
+package org.example.controller.bot;
 
 import lombok.Getter;
 import lombok.SneakyThrows;
 import org.example.controller.subscription.ScheduledNotifier;
 import org.example.controller.users.UsersController;
 import org.example.model.User.Subscription;
-import org.example.model.User.User;
+import org.example.model.User.UserApp;
 import org.example.model.cbr.Valute;
 import org.example.services.exchangeRates.ExchangeRateGetter;
 import org.example.util.Flag;
@@ -59,7 +59,8 @@ public class Bot extends TelegramLongPollingBot {
         this.controller = controller;
 
         //запуск рассылки подписок (под капотом новые потоки)
-        scheduledNotifier = new ScheduledNotifier(this, controller);
+        Map<Integer, Integer> tasksTimes = Map.of(10, 0, 19, 0);
+        scheduledNotifier = new ScheduledNotifier(this, controller, tasksTimes);
         scheduledNotifier.startScheduling();
 
         exchangeKeyboards = createKeyboards(4, 4, exchangeRateGetter.getValutes().stream().map(Valute::getCharCode).toList(), true);
@@ -118,21 +119,21 @@ public class Bot extends TelegramLongPollingBot {
                 int keyboardId = Integer.parseInt(data.split("_")[1]);
                 String body = data.split("_")[0];
 
-                //если пришло с клавиатуры курсов валют
+                //если пришло с клавиатуры курсов валют 1-3
                 int keyboardListRange = exchangeKeyboards.size();
                 if (keyboardId <= keyboardListRange) {
                     sendMessage(userId, exchangeRateGetter.getSpecificExchangeRate(body));
                     return;
                 }
 
-                //если пришло от клавиатуры конвертации в валюту
+                //если пришло от клавиатуры конвертации в валюту 4
                 keyboardListRange += convertKeyboards.size();
                 if (keyboardId <= keyboardListRange) {
                     sendMessage(userId, exchangeRateGetter.convert(controller.getConvertRequests().get(userId), body));
                     return;
                 }
 
-                //если пришло от клавиатуры подписки
+                //если пришло от клавиатуры подписки 5
                 keyboardListRange += subscribeKeyboards.size();
                 if (keyboardId <= keyboardListRange) {
                     if (controller.isSigned(userId, body)) {
@@ -144,7 +145,7 @@ public class Bot extends TelegramLongPollingBot {
                     return;
                 }
 
-                //если пришло от клавиатуры периодов динамики
+                //если пришло от клавиатуры периодов динамики 6
                 keyboardListRange += dynamicPeriodsKeyboards.size();
                 if (keyboardId <= keyboardListRange) {
                     if (body.split(" ").length == 2) {
@@ -155,7 +156,7 @@ public class Bot extends TelegramLongPollingBot {
                     return;
                 }
 
-                //если пришло от клавиатуры выбора валюты для вывода динамики
+                //если пришло от клавиатуры выбора валюты для вывода динамики 7
                 keyboardListRange += dynamicValuteChoiceKeyboards.size();
                 if (keyboardId <= keyboardListRange) {
                     String[] periodRequest = controller.getDynamicPeriodRequests().get(userId).split(" ");
@@ -166,7 +167,7 @@ public class Bot extends TelegramLongPollingBot {
                 }
 
                 //todo создается в процессе выполнения программы, поэтому этот блок оставлять ПОСЛЕДНИМ
-                //если пришло от клавиатуры отписки
+                //если пришло от клавиатуры отписки 8
                 keyboardListRange += personalSubscriptionsKeyboardsLists.get(userId).size();
                 if (keyboardId <= keyboardListRange) {
                     controller.removeSubscription(userId, body);
@@ -185,7 +186,7 @@ public class Bot extends TelegramLongPollingBot {
      * @param userId  id пользователя
      * @param message сообщение
      */
-    public void handleMessage(long userId, Message message) {
+    private void handleMessage(long userId, Message message) {
         String text = message.getText();
         if (text.equals("Информация о боте")) {
             sendMessage(userId, getInformation());
@@ -259,10 +260,14 @@ public class Bot extends TelegramLongPollingBot {
         } else if (command.equals("/unsubscribe")) {
             List<String> userCurrentSubscriptions = controller.get(userId).getSubscriptions()
                     .stream().map(Subscription::getCharCode).toList();
-            List<InlineKeyboardMarkup> personalSubscriptionKeyboards =
-                    createKeyboards(4, 4, userCurrentSubscriptions, true);
-            personalSubscriptionsKeyboardsLists.put(userId, personalSubscriptionKeyboards);
-            sendMenu(userId, "<b>Выберите валюту для отписки</b>", personalSubscriptionsKeyboardsLists.get(userId).get(0));
+            if (userCurrentSubscriptions.isEmpty()){
+                sendMessage(userId, "У вас пока нет подписок...");
+            } else {
+                List<InlineKeyboardMarkup> personalSubscriptionKeyboards =
+                        createKeyboards(4, 4, userCurrentSubscriptions, true);
+                personalSubscriptionsKeyboardsLists.put(userId, personalSubscriptionKeyboards);
+                sendMenu(userId, "<b>Выберите валюту для отписки</b>", personalSubscriptionsKeyboardsLists.get(userId).get(0));
+            }
         } else if (command.equals("/dynamics")) {
             sendMenu(userId, "<b>Выберите период времени:</b>", dynamicPeriodsKeyboards.get(0));
         } else sendMessage(userId, "Unknown command!");
@@ -477,7 +482,7 @@ public class Bot extends TelegramLongPollingBot {
                 .build();
     }
 
-    /**
+    /**а
      * Метод для создания кнопки с текстом
      *
      * @param keyBoardNumb принадлежность кнопки (для отслеживания callbackData с разных клавиатур от разных команд)
@@ -530,13 +535,13 @@ public class Bot extends TelegramLongPollingBot {
      * @param message сообщение
      */
     private void addUser(Message message) {
-        User user = new User
+        UserApp userApp = new UserApp
                 .Builder()
                 .withId(message.getFrom().getId())
                 .withFirstName(message.getFrom().getFirstName())
                 .withNickName(message.getFrom().getUserName())
                 .build();
-        controller.add(user);
+        controller.add(userApp);
     }
 
     private String prepareFeedbackMessage() {

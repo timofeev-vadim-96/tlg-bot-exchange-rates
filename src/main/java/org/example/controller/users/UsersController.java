@@ -4,7 +4,7 @@ import lombok.Getter;
 import org.example.dao.Dao;
 import org.example.model.User.Feedback;
 import org.example.model.User.Subscription;
-import org.example.model.User.User;
+import org.example.model.User.UserApp;
 
 import java.util.HashMap;
 import java.util.List;
@@ -24,17 +24,17 @@ public class UsersController {
         dynamicPeriodRequests = new HashMap<>();
     }
 
-    public UsersController add(User user){
-        dao.save(user);
+    public UsersController add(UserApp userApp){
+        dao.save(userApp);
         return this;
     }
 
-    public UsersController remove(User user){
-        dao.delete(user);
+    public UsersController remove(UserApp userApp){
+        dao.delete(userApp);
         return this;
     }
-    public UsersController remove(int telegramId){
-        dao.delete(User.class, telegramId);
+    public UsersController remove(long telegramId){
+        dao.delete(UserApp.class, telegramId);
         return this;
     }
 
@@ -43,73 +43,74 @@ public class UsersController {
      * @param telegramId id пользователя в телеграмме
      * @return либо User, либо null
      */
-    public User get(long telegramId){
-        return dao.get(telegramId, User.class);
+    public UserApp get(long telegramId){
+        return dao.get(telegramId, UserApp.class);
     }
 
     public boolean isContained(long telegramId){
-        List<User> users = dao.findAll(User.class);
-        for (User user: users){
-            if (user.getId() == telegramId) return true;
+        List<UserApp> userApps = dao.findAll(UserApp.class);
+        for (UserApp userApp : userApps){
+            if (userApp.getId() == telegramId) return true;
         }
         return false;
     }
 
     //region Subscription
     public boolean isSigned(long telegramId, String charCode){
-        User user = get(telegramId);
-        for (Subscription subscription: user.getSubscriptions()){
+        UserApp userApp = get(telegramId);
+        for (Subscription subscription: userApp.getSubscriptions()){
             if (subscription.getCharCode().equals(charCode)) return true;
         }
         return false;
     }
 
     public void addSubscription(long telegramId, String charCode){
-        User user = get(telegramId);
+        UserApp userApp = get(telegramId);
 
         Subscription subscription = new Subscription(charCode);
 
-        //если такой подписки в базе нет - добавляем в базу
-        if (!dao.findAll(Subscription.class).contains(subscription)){
+        List<Subscription> subscriptions = dao.findAll(Subscription.class);
+        //если такой валюты в базе нет - добавляем в базу
+        if (!subscriptions.contains(subscription)){
             dao.save(subscription);
 
-            //если такая подписка есть - тянем ее вместе с ее id
+            //если такая валюта есть - тянем ее вместе с ее id
         } else{
-            subscription = dao.findAll(Subscription.class)
+            subscription = subscriptions
                     .stream()
                     .filter(sub -> sub.getCharCode().equals(charCode))
                     .findFirst().orElse(null);
         }
 
-        user.addSubscription(subscription);
-        dao.update(user);
+        userApp.addSubscription(subscription);
+        dao.update(userApp);
     }
 
     public void removeSubscription(long telegramId, String charCode){
-        User user = get(telegramId);
-        user.removeSubscription(charCode);
-        dao.update(user);
+        UserApp userApp = get(telegramId);
+        userApp.removeSubscription(charCode);
+        dao.update(userApp);
     }
     //endregion
 
     // region Feedback
     public void addFeedback(long telegramId, String text){
-        User user = get(telegramId);
+        UserApp userApp = get(telegramId);
 
-        Feedback feedback = new Feedback(user.getFirstName() + ": " + text);
+        Feedback feedback = new Feedback(userApp.getFirstName() + ": " + text);
 
-        user.addFeedback(feedback);
-        dao.update(user);
+        userApp.addFeedback(feedback);
+        dao.update(userApp);
     }
 
-    public void removeFeedback(long telegramId, int tableId){
-        User user = get(telegramId);
-        user.removeFeedback(tableId);
-        dao.update(user);
+    public void removeFeedback(long telegramId, long tableId){
+        UserApp userApp = get(telegramId);
+        userApp.removeFeedback(tableId);
+        dao.update(userApp);
     }
     //endregion
 
-    public List<User> getUsers(){
-        return dao.findAll(User.class);
+    public List<UserApp> getUsers(){
+        return dao.findAll(UserApp.class);
     }
 }

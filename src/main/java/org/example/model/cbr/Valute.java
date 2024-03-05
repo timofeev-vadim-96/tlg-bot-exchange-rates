@@ -9,9 +9,7 @@ import javax.xml.bind.annotation.XmlElement;
 
 @AllArgsConstructor
 @NoArgsConstructor
-@Getter
-@ToString
-@EqualsAndHashCode
+@Data
 @XmlAccessorType(XmlAccessType.FIELD)
 public class Valute {
     @XmlAttribute(name = "ID")

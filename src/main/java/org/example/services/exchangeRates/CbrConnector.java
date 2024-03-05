@@ -2,7 +2,6 @@ package org.example.services.exchangeRates;
 
 import org.example.model.cbr.CbrResponse;
 import org.example.model.cbr.Valute;
-import org.example.util.DateManager;
 import org.example.util.Flag;
 import org.example.util.XmlConverterUtil;
 
@@ -31,7 +30,7 @@ public class CbrConnector implements ExchangeRateGetter {
             HttpURLConnection con = (HttpURLConnection) url.openConnection();
 
             InputStreamReader inputStreamReader = new InputStreamReader(con.getInputStream());
-            CbrResponse response = XmlConverterUtil.unmarshallStream(inputStreamReader, CbrResponse.class);
+            CbrResponse response = XmlConverterUtil.unmarshall(inputStreamReader, CbrResponse.class);
             inputStreamReader.close();
 
             return response;
@@ -170,13 +169,14 @@ public class CbrConnector implements ExchangeRateGetter {
      * @return корректную дату в прошлом
      */
     private static LocalDate getDateFromThePast(String timeUnit, short unit) {
+        LocalDate now = LocalDate.now();
         LocalDate pastDate;
         if (timeUnit.contains("нед")) {
-            pastDate = DateManager.getDateFromThePast(DateManager.TimeUnit.WEEK, unit);
+            pastDate = now.minusWeeks(unit);
         } else if (timeUnit.contains("мес")) {
-            pastDate = DateManager.getDateFromThePast(DateManager.TimeUnit.MONTH, unit);
+            pastDate = now.minusMonths(unit);
         } else if (timeUnit.contains("лет") || timeUnit.contains("год")) {
-            pastDate = DateManager.getDateFromThePast(DateManager.TimeUnit.YEAR, unit);
+            pastDate = now.minusYears(unit);
         } else throw new IllegalArgumentException("invalid value of an argument timeunit : " + timeUnit);
         return pastDate;
     }

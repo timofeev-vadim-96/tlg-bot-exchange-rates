@@ -3,16 +3,13 @@ package org.example.model.User;
 import lombok.*;
 
 import javax.persistence.*;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 @Entity
 @AllArgsConstructor
 @Data
 @Table(name = "users")
-public class User {
+public class UserApp {
     @Id
     private long id;
     @Column(name = "first_name")
@@ -28,7 +25,7 @@ public class User {
             inverseJoinColumns = @JoinColumn(name = "subscription_id", referencedColumnName = "id"))
     private Set<Subscription> subscriptions;
 
-    public User() {
+    public UserApp() {
         feedbackMessages = new ArrayList<>();
         subscriptions = new HashSet<>();
     }
@@ -68,40 +65,40 @@ public class User {
         feedbackMessages.remove(feedback);
     }
 
-    public void removeFeedback(int tableId){
+    public void removeFeedback(long tableId){
         feedbackMessages.removeIf(feedback -> feedback.getId() == tableId);
     }
     //endregion
 
     public static class Builder {
-        private User user;
+        private UserApp userApp;
 
         public Builder(){
-            user = new User();
+            userApp = new UserApp();
         }
 
         public Builder withId (long userId){
-            user.setId(userId);
+            userApp.setId(userId);
             return this;
         }
 
         public Builder withFirstName (String firstName){
-            user.setFirstName(firstName);
+            userApp.setFirstName(firstName);
             return this;
         }
 
         public Builder withNickName (String nickName){
-            user.setNickName(nickName);
+            userApp.setNickName(nickName);
             return this;
         }
 
         public Builder withPhone (String phone){
-            user.setPhone(phone);
+            userApp.setPhone(phone);
             return this;
         }
 
-        public User build(){
-            return user;
+        public UserApp build(){
+            return userApp;
         }
     }
 }
