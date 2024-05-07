@@ -9,7 +9,7 @@ import java.util.*;
 @AllArgsConstructor
 @Data
 @Table(name = "users")
-public class UserApp {
+public class CustomUser {
     @Id
     private long id;
     @Column(name = "first_name")
@@ -25,7 +25,7 @@ public class UserApp {
             inverseJoinColumns = @JoinColumn(name = "subscription_id", referencedColumnName = "id"))
     private Set<Subscription> subscriptions;
 
-    public UserApp() {
+    public CustomUser() {
         feedbackMessages = new ArrayList<>();
         subscriptions = new HashSet<>();
     }
@@ -70,35 +70,49 @@ public class UserApp {
     }
     //endregion
 
+
+    @Override
+    public boolean equals(Object object) {
+        if (this == object) return true;
+        if (object == null || getClass() != object.getClass()) return false;
+        CustomUser customUser = (CustomUser) object;
+        return Objects.equals(firstName, customUser.firstName) && Objects.equals(nickName, customUser.nickName) && Objects.equals(phone, customUser.phone);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(firstName, nickName, phone);
+    }
+
     public static class Builder {
-        private UserApp userApp;
+        private CustomUser customUser;
 
         public Builder(){
-            userApp = new UserApp();
+            customUser = new CustomUser();
         }
 
         public Builder withId (long userId){
-            userApp.setId(userId);
+            customUser.setId(userId);
             return this;
         }
 
         public Builder withFirstName (String firstName){
-            userApp.setFirstName(firstName);
+            customUser.setFirstName(firstName);
             return this;
         }
 
         public Builder withNickName (String nickName){
-            userApp.setNickName(nickName);
+            customUser.setNickName(nickName);
             return this;
         }
 
         public Builder withPhone (String phone){
-            userApp.setPhone(phone);
+            customUser.setPhone(phone);
             return this;
         }
 
-        public UserApp build(){
-            return userApp;
+        public CustomUser build(){
+            return customUser;
         }
     }
 }

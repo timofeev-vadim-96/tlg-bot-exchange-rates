@@ -2,8 +2,8 @@ package org.example.controller.subscription;
 
 import org.example.controller.bot.Bot;
 import org.example.controller.users.UsersController;
+import org.example.model.User.CustomUser;
 import org.example.model.User.Subscription;
-import org.example.model.User.UserApp;
 
 import java.util.Calendar;
 import java.util.List;
@@ -71,16 +71,16 @@ public class ScheduledNotifier {
      * Метод отправки уведомлений пользователям по их подпискам
      */
     private void schedule(String greeting) {
-        List<UserApp> userApps = usersController.getUsers();
-        for (UserApp userApp : userApps) {
-            Set<String> subscriptions = userApp.getSubscriptions()
+        List<CustomUser> customUsers = usersController.getUsers();
+        for (CustomUser customUser : customUsers) {
+            Set<String> subscriptions = customUser.getSubscriptions()
                     .stream()
                     .map(Subscription::getCharCode)
                     .collect(Collectors.toSet());
             if (!subscriptions.isEmpty()) {
-                bot.sendMessage(userApp.getId(), greeting);
+                bot.sendMessage(customUser.getId(), greeting);
                 for (String subscription : subscriptions) {
-                    bot.sendMessage(userApp.getId(), bot.getExchangeRateGetter().getSpecificExchangeRate(subscription));
+                    bot.sendMessage(customUser.getId(), bot.getExchangeRateGetter().getSpecificExchangeRate(subscription));
                 }
             }
         }

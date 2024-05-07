@@ -1,7 +1,7 @@
 package org.example.controller.bot;
 
 import org.example.controller.users.UsersController;
-import org.example.model.User.UserApp;
+import org.example.model.User.CustomUser;
 import org.example.model.cbr.Valute;
 import org.example.services.exchangeRates.ExchangeRateGetter;
 import org.example.util.Flag;
@@ -209,7 +209,7 @@ class BotTest {
         long userId = 1;
         Update update = createUpdateWithCommandInside(userId, "/unsubscribe");
         doNothing().when(bot).sendMessage(anyLong(), anyString());
-        when(controller.get(userId)).thenReturn(new UserApp());
+        when(controller.get(userId)).thenReturn(new CustomUser());
 
         bot.onUpdateReceived(update);
 
@@ -225,9 +225,9 @@ class BotTest {
         long userId = 1;
         Update update = createUpdateWithCommandInside(userId, "/unsubscribe");
         doNothing().when(bot).sendMenu(anyLong(), anyString(), any(ReplyKeyboard.class));
-        UserApp userApp = new UserApp();
-        userApp.addSubscription("USD");
-        when(controller.get(userId)).thenReturn(userApp);
+        CustomUser customUser = new CustomUser();
+        customUser.addSubscription("USD");
+        when(controller.get(userId)).thenReturn(customUser);
 
         bot.onUpdateReceived(update);
 

@@ -2,7 +2,7 @@ package org.example.controller.subscription;
 
 import org.example.controller.bot.Bot;
 import org.example.controller.users.UsersController;
-import org.example.model.User.UserApp;
+import org.example.model.User.CustomUser;
 import org.example.services.exchangeRates.ExchangeRateGetter;
 import org.junit.jupiter.api.Test;
 
@@ -29,9 +29,9 @@ class ScheduledNotifierTest {
         int minute = testDateTime.getMinute();
         Map<Integer, Integer> tasksTimes = Map.of(hour, minute);
         ScheduledNotifier scheduledNotifier = new ScheduledNotifier(bot, usersController, tasksTimes);
-        UserApp userApp = new UserApp();
-        userApp.addSubscription("USD");
-        when(usersController.getUsers()).thenReturn(List.of(userApp));
+        CustomUser customUser = new CustomUser();
+        customUser.addSubscription("USD");
+        when(usersController.getUsers()).thenReturn(List.of(customUser));
         when(bot.getExchangeRateGetter()).thenReturn(mock(ExchangeRateGetter.class));
 
         scheduledNotifier.startScheduling();

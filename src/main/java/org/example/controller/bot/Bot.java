@@ -4,8 +4,8 @@ import lombok.Getter;
 import lombok.SneakyThrows;
 import org.example.controller.subscription.ScheduledNotifier;
 import org.example.controller.users.UsersController;
+import org.example.model.User.CustomUser;
 import org.example.model.User.Subscription;
-import org.example.model.User.UserApp;
 import org.example.model.cbr.Valute;
 import org.example.services.exchangeRates.ExchangeRateGetter;
 import org.example.util.Flag;
@@ -535,13 +535,13 @@ public class Bot extends TelegramLongPollingBot {
      * @param message сообщение
      */
     private void addUser(Message message) {
-        UserApp userApp = new UserApp
+        CustomUser customUser = new CustomUser
                 .Builder()
                 .withId(message.getFrom().getId())
                 .withFirstName(message.getFrom().getFirstName())
                 .withNickName(message.getFrom().getUserName())
                 .build();
-        controller.add(userApp);
+        controller.add(customUser);
     }
 
     private String prepareFeedbackMessage() {

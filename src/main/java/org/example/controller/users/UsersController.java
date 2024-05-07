@@ -2,9 +2,9 @@ package org.example.controller.users;
 
 import lombok.Getter;
 import org.example.dao.Dao;
+import org.example.model.User.CustomUser;
 import org.example.model.User.Feedback;
 import org.example.model.User.Subscription;
-import org.example.model.User.UserApp;
 
 import java.util.HashMap;
 import java.util.List;
@@ -24,17 +24,17 @@ public class UsersController {
         dynamicPeriodRequests = new HashMap<>();
     }
 
-    public UsersController add(UserApp userApp){
-        dao.save(userApp);
+    public UsersController add(CustomUser customUser){
+        dao.save(customUser);
         return this;
     }
 
-    public UsersController remove(UserApp userApp){
-        dao.delete(userApp);
+    public UsersController remove(CustomUser customUser){
+        dao.delete(customUser);
         return this;
     }
     public UsersController remove(long telegramId){
-        dao.delete(UserApp.class, telegramId);
+        dao.delete(CustomUser.class, telegramId);
         return this;
     }
 
@@ -43,29 +43,29 @@ public class UsersController {
      * @param telegramId id пользователя в телеграмме
      * @return либо User, либо null
      */
-    public UserApp get(long telegramId){
-        return dao.get(telegramId, UserApp.class);
+    public CustomUser get(long telegramId){
+        return dao.get(telegramId, CustomUser.class);
     }
 
     public boolean isContained(long telegramId){
-        List<UserApp> userApps = dao.findAll(UserApp.class);
-        for (UserApp userApp : userApps){
-            if (userApp.getId() == telegramId) return true;
+        List<CustomUser> customUsers = dao.findAll(CustomUser.class);
+        for (CustomUser customUser : customUsers){
+            if (customUser.getId() == telegramId) return true;
         }
         return false;
     }
 
     //region Subscription
     public boolean isSigned(long telegramId, String charCode){
-        UserApp userApp = get(telegramId);
-        for (Subscription subscription: userApp.getSubscriptions()){
+        CustomUser customUser = get(telegramId);
+        for (Subscription subscription: customUser.getSubscriptions()){
             if (subscription.getCharCode().equals(charCode)) return true;
         }
         return false;
     }
 
     public void addSubscription(long telegramId, String charCode){
-        UserApp userApp = get(telegramId);
+        CustomUser customUser = get(telegramId);
 
         Subscription subscription = new Subscription(charCode);
 
@@ -82,35 +82,35 @@ public class UsersController {
                     .findFirst().orElse(null);
         }
 
-        userApp.addSubscription(subscription);
-        dao.update(userApp);
+        customUser.addSubscription(subscription);
+        dao.update(customUser);
     }
 
     public void removeSubscription(long telegramId, String charCode){
-        UserApp userApp = get(telegramId);
-        userApp.removeSubscription(charCode);
-        dao.update(userApp);
+        CustomUser customUser = get(telegramId);
+        customUser.removeSubscription(charCode);
+        dao.update(customUser);
     }
     //endregion
 
     // region Feedback
     public void addFeedback(long telegramId, String text){
-        UserApp userApp = get(telegramId);
+        CustomUser customUser = get(telegramId);
 
-        Feedback feedback = new Feedback(userApp.getFirstName() + ": " + text);
+        Feedback feedback = new Feedback(customUser.getFirstName() + ": " + text);
 
-        userApp.addFeedback(feedback);
-        dao.update(userApp);
+        customUser.addFeedback(feedback);
+        dao.update(customUser);
     }
 
     public void removeFeedback(long telegramId, long tableId){
-        UserApp userApp = get(telegramId);
-        userApp.removeFeedback(tableId);
-        dao.update(userApp);
+        CustomUser customUser = get(telegramId);
+        customUser.removeFeedback(tableId);
+        dao.update(customUser);
     }
     //endregion
 
-    public List<UserApp> getUsers(){
-        return dao.findAll(UserApp.class);
+    public List<CustomUser> getUsers(){
+        return dao.findAll(CustomUser.class);
     }
 }
